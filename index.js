@@ -39,6 +39,7 @@ function Client(config) {
             follow_external: false,
             auto_queue: true,
             log_stats: true,
+            kms_include_body: false,
             follow_subdomain: false,
             case_sensitive: false,
             query_strings: false,
@@ -56,7 +57,7 @@ function Client(config) {
     function _KMSEventPoll(force) {
         if (!force && (Date.now() - _KMSEvent.timestamp) < 1000)
             return;
-        _KMSEvent.requests.total = _state.request_completed;
+        _KMSEvent.responses.total = _state.request_completed;
         _KMSEvent.requests.active = _state.request_open;
         _KMSEvent.requests.queued = _state.queue.length();
         _this.emit('kms', _KMSEvent);
@@ -82,7 +83,7 @@ function Client(config) {
         options.host = href.host;
         options.path = href.path;
         _KMSEvent.requests.urls.push(href);
-        _KMSEvent.requests.opened++;
+        _KMSEvent.requests.current++;
         _state.counter++;
         var req = (href.protocol == 'https:' ? https : http).request(options, responseHandler).on('error', end);
         req.setTimeout(_config.request_wait, () => { req.abort(); });
@@ -109,9 +110,11 @@ function Client(config) {
         }
         function end(e) {
             _KMSEventPoll();
-            _KMSEvent.requests.closed++;
-            _KMSEvent.responses.codes[responseCode] = (_KMSEvent.responses.codes[responseCode] || 0) + 1;
-            _KMSEvent.responses.ttfb.push(ttfb);
+            _KMSEvent.responses.current++;
+            var kmsObject = Object.assign({}, href, { status: responseCode, ttfb: ttfb });
+            if (_config.kms_include_body)
+                kmsObject.body = body;
+            _KMSEvent.responses.urls.push(kmsObject)
             _state.parser.parse({ ttfb: ttfb, href: href, responseStatus: responseCode, startTime: start, responseTime: (Date.now() - start), content: body });
         }
     }
@@ -152,6 +155,8 @@ function Client(config) {
         _request(href);
     }
     // Public
+
+
     this.queue = function (href, referrer) {
         var href = URL(href, referrer);
         if (!href || !('http:' == href.protocol || 'https:' == href.protocol))
@@ -186,7 +191,7 @@ function Client(config) {
         }
         return _this;
     }
-    this.stop = function (m) {
+    this.stop = function () {
         if (_state.status != _status.Stopped) {
             clearInterval(_state.request_interval);
             clearInterval(_state.kms_interval);
@@ -227,6 +232,8 @@ function Client(config) {
             _config.case_sensitive = !!config.case_sensitive;
         if (config.hasOwnProperty('query_strings'))
             _config.query_strings = !!config.query_strings;
+        if (config.hasOwnProperty('kms_include_body'))
+            _config.kms_include_body = !!config.kms_include_body;
 
         if (_state.status == _status.Stopped) {
             if (config.parser) {
@@ -264,18 +271,23 @@ Client.prototype = new events.EventEmitter;
 
 function KMSEvent(timestamp) {
     this.requests = {
-        total: 0,
-        opened: 0,
-        closed: 0,
+        current: 0,
         active: 0,
         queued: 0,
         urls: []
     };
     this.responses = {
-        codes: { 0: 0, 200: 0 },
-        ttfb: []
+        current: 0,
+        total: 0,
+        urls: []
     }
     this.timestamp = timestamp || Date.now();
     this.bandwidth = 0;
 }
 exports.Client = Client;
+function Invterval(callback, interval) {
+    var interval = invterval,
+        lastHR = process.hrtime();
+
+
+}
