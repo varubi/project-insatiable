@@ -26,9 +26,9 @@ function Parser(callback) {
         }
         return hrefs;
     }
-    function _parse(obj) {
+    async function _parse(obj) {
         var start = Date.now();
-        obj.hrefs = _parseMethod(obj.href, obj.content)
+        obj.hrefs = (await _parseMethod(obj.href, obj.content))
             .map(url => URL(url, obj.href))
             .filter(u => u);
         obj.parseTime = Date.now() - start;
