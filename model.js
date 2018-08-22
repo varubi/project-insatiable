@@ -181,7 +181,7 @@ CookieJar.prototype.get = function (referrer) {
 function Url(href, referrer) {
     try {
         if (referrer) {
-            href = (BeginsWith(href, '//') == 0 ? referrer.protocol : '') + href;
+            href = (BeginsWith(href, '//') ? referrer.protocol : '') + href;
             href = new URL(href, referrer.fullpath);
         } else {
             href = new URL(href);
