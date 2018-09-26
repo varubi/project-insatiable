@@ -265,6 +265,10 @@ function Client(config) {
         }
     }
     this.configure(config);
+    this.data = function () {
+        return _state.history.view();
+
+    }
     return _this;
 }
 Client.prototype = new events.EventEmitter;
